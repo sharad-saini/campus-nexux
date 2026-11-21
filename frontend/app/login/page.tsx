@@ -21,7 +21,12 @@ import {
   KeyRound,
   RotateCcw,
 } from "lucide-react";
-import { useAuth, normalizeRole, getDashboardPathForRole } from "@/context/AuthContext";
+import {
+  GoogleAccountNotFoundError,
+  useAuth,
+  normalizeRole,
+  getDashboardPathForRole,
+} from "@/context/AuthContext";
 
 type AuthTab = "signin" | "signup" | "forgot";
 
@@ -101,6 +106,7 @@ function LoginPageContent() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const googleInitialized = useRef(false);
+  const [googleSignupCredential, setGoogleSignupCredential] = useState<string | null>(null);
 
   // Sign In state
   const [signInEmail, setSignInEmail] = useState("");
@@ -110,7 +116,7 @@ function LoginPageContent() {
   const [signUpName, setSignUpName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
-  const [signUpRole, setSignUpRole] = useState<"student" | "faculty" | "other">("student");
+  const [signUpRole, setSignUpRole] = useState<"student" | "faculty" | "other" | "">("student");
   const [signUpDept, setSignUpDept] = useState("CSE");
 
   // Forgot Password state
@@ -118,6 +124,14 @@ function LoginPageContent() {
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [forgotStep, setForgotStep] = useState<"request" | "reset">("request");
+
+  const cancelGoogleSignup = () => {
+    setGoogleSignupCredential(null);
+    setSignUpName("");
+    setSignUpEmail("");
+    setSignUpPassword("");
+    setSignUpRole("student");
+  };
 
   // Redirect authenticated user immediately to their dashboard
   useEffect(() => {
@@ -186,7 +200,18 @@ function LoginPageContent() {
       setSuccessMsg(`Welcome back, ${loggedUser.full_name || loggedUser.email}! Redirecting...`);
       router.replace(redirectParam || getDashboardPathForRole(loggedUser.role));
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Google sign-in failed. Please try again.");
+      if (err instanceof GoogleAccountNotFoundError) {
+        setGoogleSignupCredential(response.credential);
+        setSignUpName(err.fullName || err.email.split("@")[0]);
+        setSignUpEmail(err.email);
+        setSignUpPassword("");
+        setSignUpRole("");
+        setSignUpDept("CSE");
+        setTab("signup");
+        setSuccessMsg("Google verified your identity. Choose an account type to complete registration.");
+      } else {
+        setErrorMsg(err instanceof Error ? err.message : "Google sign-in failed. Please try again.");
+      }
     } finally {
       setBusy(false);
     }
@@ -266,28 +291,47 @@ function LoginPageContent() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    if (!signUpName.trim() || !signUpEmail.trim() || !signUpPassword) {
+    if (!signUpName.trim() || !signUpEmail.trim()) {
+      setErrorMsg("Name and email are required.");
+      return;
+    }
+
+    if (!signUpRole) {
+      setErrorMsg("Please choose Student, Faculty, or Other / Staff to continue.");
+      return;
+    }
+
+    if (!googleSignupCredential && !signUpPassword) {
       setErrorMsg("All fields are required.");
       return;
     }
 
-    if (signUpPassword.length < 6) {
+    if (!googleSignupCredential && signUpPassword.length < 6) {
       setErrorMsg("Password must be at least 6 characters.");
       return;
     }
 
     setBusy(true);
     try {
-      await register({
-        full_name: signUpName.trim(),
-        email: signUpEmail.trim(),
-        password: signUpPassword,
-        role: signUpRole,
-        department: signUpDept,
-        college_code: "NITX",
-      });
+      let createdUser: Awaited<ReturnType<typeof loginWithGoogle>>;
+      if (googleSignupCredential) {
+        createdUser = await loginWithGoogle(googleSignupCredential, {
+          role: signUpRole,
+          department: signUpDept,
+        });
+        setGoogleSignupCredential(null);
+      } else {
+        createdUser = await register({
+          full_name: signUpName.trim(),
+          email: signUpEmail.trim(),
+          password: signUpPassword,
+          role: signUpRole,
+          department: signUpDept,
+          college_code: "NITX",
+        });
+      }
       setSuccessMsg("Account created successfully! You are now logged in.");
-      const target = redirectParam || getDashboardPathForRole(signUpRole);
+      const target = redirectParam || getDashboardPathForRole(createdUser.role);
       setTimeout(() => router.push(target), 500);
     } catch (err: any) {
       setErrorMsg(err.message || "Registration failed. Please check your inputs.");
@@ -460,6 +504,7 @@ function LoginPageContent() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (googleSignupCredential) cancelGoogleSignup();
                     setTab("signin");
                     setErrorMsg(null);
                     setSuccessMsg(null);
@@ -491,6 +536,7 @@ function LoginPageContent() {
                   type="button"
                   onClick={() => {
                     setTab("forgot");
+                    if (googleSignupCredential) cancelGoogleSignup();
                     setErrorMsg(null);
                     setSuccessMsg(null);
                   }}
@@ -506,13 +552,13 @@ function LoginPageContent() {
 
               {/* Status Alerts */}
               {errorMsg && (
-                <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 animate-fadeIn">
+                <div role="alert" className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 animate-fadeIn">
                   <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
                   <span>{errorMsg}</span>
                 </div>
               )}
               {successMsg && (
-                <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5 animate-fadeIn">
+                <div role="status" aria-live="polite" className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5 animate-fadeIn">
                   <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
                   <span>{successMsg}</span>
                 </div>
@@ -634,7 +680,13 @@ function LoginPageContent() {
               {/* TAB 2: SIGN UP */}
               {/* ============================================================== */}
               {tab === "signup" && (
-                <form onSubmit={handleSignUp} className="space-y-4">
+                <form onSubmit={handleSignUp} aria-busy={busy} className="space-y-4">
+                  {googleSignupCredential && (
+                    <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-[11px] leading-relaxed text-emerald-900">
+                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                      <p>Google verified your identity. Choose an account type below to finish; no password is needed.</p>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1.5">Full Name</label>
                     <div className="relative">
@@ -644,8 +696,11 @@ function LoginPageContent() {
                         required
                         value={signUpName}
                         onChange={(e) => setSignUpName(e.target.value)}
+                        readOnly={Boolean(googleSignupCredential)}
                         placeholder="e.g. Diya Sen"
-                        className="w-full bg-slate-50/80 border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:bg-white transition-all"
+                        className={`w-full border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:bg-white transition-all ${
+                          googleSignupCredential ? "bg-slate-100 cursor-not-allowed" : "bg-slate-50/80"
+                        }`}
                       />
                     </div>
                   </div>
@@ -659,21 +714,31 @@ function LoginPageContent() {
                         required
                         value={signUpEmail}
                         onChange={(e) => setSignUpEmail(e.target.value)}
+                        readOnly={Boolean(googleSignupCredential)}
+                        aria-describedby={googleSignupCredential ? "google-verified-email" : undefined}
                         placeholder="e.g. diya.sen@nitx.demo"
-                        className="w-full bg-slate-50/80 border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:bg-white transition-all"
+                        className={`w-full border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:bg-white transition-all ${
+                          googleSignupCredential ? "bg-slate-100 cursor-not-allowed" : "bg-slate-50/80"
+                        }`}
                       />
                     </div>
+                    {googleSignupCredential && (
+                      <p id="google-verified-email" className="mt-1 text-[10px] text-slate-500">
+                        This email is locked to the Google-verified account.
+                      </p>
+                    )}
                   </div>
 
                   {/* Public Role Selector (Admin is strictly disallowed) */}
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                      Select Role <span className="text-slate-500 font-normal">(Admin is invitation-only)</span>
+                      Select Role <span className="text-slate-500 font-normal">(required; Admin is not available here)</span>
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
                         onClick={() => setSignUpRole("student")}
+                        aria-pressed={signUpRole === "student"}
                         className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
                           signUpRole === "student"
                             ? "bg-amber-100/90 border-amber-500 text-amber-900 font-bold shadow-sm"
@@ -686,6 +751,7 @@ function LoginPageContent() {
                       <button
                         type="button"
                         onClick={() => setSignUpRole("faculty")}
+                        aria-pressed={signUpRole === "faculty"}
                         className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
                           signUpRole === "faculty"
                             ? "bg-amber-100/90 border-amber-500 text-amber-900 font-bold shadow-sm"
@@ -698,6 +764,7 @@ function LoginPageContent() {
                       <button
                         type="button"
                         onClick={() => setSignUpRole("other")}
+                        aria-pressed={signUpRole === "other"}
                         className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
                           signUpRole === "other"
                             ? "bg-amber-100/90 border-amber-500 text-amber-900 font-bold shadow-sm"
@@ -708,6 +775,9 @@ function LoginPageContent() {
                         <span>Other (Staff)</span>
                       </button>
                     </div>
+                    <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                      Admin access is provisioned by campus administration.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -724,7 +794,7 @@ function LoginPageContent() {
                         <option value="Administration">General Academics</option>
                       </select>
                     </div>
-                    <div>
+                    {!googleSignupCredential && <div>
                       <label className="block text-xs font-medium text-slate-700 mb-1.5">Password</label>
                       <div className="relative">
                         <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -745,7 +815,7 @@ function LoginPageContent() {
                           {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
                       </div>
-                    </div>
+                    </div>}
                   </div>
 
                   <div className="pt-2">
@@ -769,13 +839,16 @@ function LoginPageContent() {
                   </div>
 
                   <div className="text-center pt-1 text-[11px] text-slate-500">
-                    Already have an account?{" "}
+                    {googleSignupCredential ? "Changed your mind? " : "Already have an account? "}
                     <button
                       type="button"
-                      onClick={() => setTab("signin")}
+                      onClick={() => {
+                        if (googleSignupCredential) cancelGoogleSignup();
+                        setTab("signin");
+                      }}
                       className="text-amber-700 font-semibold hover:underline"
                     >
-                      Sign In
+                      {googleSignupCredential ? "Cancel Google setup" : "Sign In"}
                     </button>
                   </div>
                 </form>

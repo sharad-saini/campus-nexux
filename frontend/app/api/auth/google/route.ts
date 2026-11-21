@@ -22,8 +22,11 @@ export async function POST(request: Request) {
   }
 
   let credential: unknown;
+  let requestedRole: unknown;
+  let requestedDepartment: unknown;
   try {
-    ({ credential } = await request.json());
+    const body = await request.json();
+    ({ credential, role: requestedRole, department: requestedDepartment } = body);
   } catch {
     return NextResponse.json({ detail: "A Google credential is required." }, { status: 400 });
   }
@@ -63,9 +66,33 @@ export async function POST(request: Request) {
   let accountCreated = false;
 
   if (!user) {
+    if (requestedRole === undefined) {
+      const email = tokenInfo.email.trim().toLowerCase();
+      return NextResponse.json(
+        {
+          code: "GOOGLE_ACCOUNT_NOT_FOUND",
+          detail: "Choose an account type to finish creating your account.",
+          identity: {
+            email,
+            name: tokenInfo.name?.trim() || email.split("@")[0],
+          },
+        },
+        { status: 404 }
+      );
+    }
+
+    const role = typeof requestedRole === "string" ? requestedRole.trim().toLowerCase() : "";
+    if (role !== "student" && role !== "faculty" && role !== "other") {
+      return NextResponse.json(
+        { code: "GOOGLE_ROLE_NOT_ALLOWED", detail: "Choose Student, Faculty, or Other / Staff." },
+        { status: 400 }
+      );
+    }
+
     const normalizedEmail = tokenInfo.email.trim().toLowerCase();
     const fullName = tokenInfo.name?.trim() || normalizedEmail.split("@")[0];
     const passwordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
+    const normalizedRole = role;
     const newUser: UserRecord = {
       id: `usr-google-${createHash("sha256").update(normalizedEmail).digest("hex").slice(0, 24)}`,
       tenant_id: "northstar",
@@ -77,9 +104,12 @@ export async function POST(request: Request) {
       email: normalizedEmail,
       full_name: fullName,
       name: fullName,
-      role: "student",
-      normalized_role: "student",
-      department: "CSE",
+      role: normalizedRole,
+      normalized_role: normalizedRole,
+      department:
+        typeof requestedDepartment === "string" && requestedDepartment.trim()
+          ? requestedDepartment.trim().slice(0, 100)
+          : "CSE",
       passwordHash,
       cgpa: 0,
       karma_points: 0,

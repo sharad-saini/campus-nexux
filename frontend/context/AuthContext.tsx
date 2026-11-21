@@ -23,6 +23,16 @@ export interface AuthUser {
   is_new_account?: boolean;
 }
 
+export class GoogleAccountNotFoundError extends Error {
+  constructor(
+    readonly email: string,
+    readonly fullName: string
+  ) {
+    super("This Google account has not been registered yet.");
+    this.name = "GoogleAccountNotFoundError";
+  }
+}
+
 export function normalizeRole(role?: string): "student" | "faculty" | "admin" | "other" {
   const r = (role || "").trim().toLowerCase();
   if (["admin", "dean", "chancellor_dean"].includes(r)) return "admin";
@@ -56,7 +66,10 @@ interface AuthContextType {
     password?: string,
     college_code?: string
   ) => Promise<AuthUser>;
-  loginWithGoogle: (credential: string) => Promise<AuthUser>;
+  loginWithGoogle: (
+    credential: string,
+    registration?: { role: "student" | "faculty" | "other"; department?: string }
+  ) => Promise<AuthUser>;
   register: (data: {
     email: string;
     password: string;
@@ -167,17 +180,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const loginWithGoogle = useCallback(async (credential: string) => {
+  const loginWithGoogle = useCallback(async (
+    credential: string,
+    registration?: { role: "student" | "faculty" | "other"; department?: string }
+  ) => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify({ credential, ...registration }),
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        if (
+          res.status === 404 &&
+          errorData.code === "GOOGLE_ACCOUNT_NOT_FOUND" &&
+          typeof errorData.identity?.email === "string"
+        ) {
+          throw new GoogleAccountNotFoundError(
+            errorData.identity.email,
+            typeof errorData.identity.name === "string" ? errorData.identity.name : ""
+          );
+        }
         throw new Error(errorData.detail || "Google sign-in failed");
       }
 
