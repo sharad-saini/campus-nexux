@@ -34,6 +34,7 @@ import {
   Flame,
   HelpCircle,
   TrendingUp,
+  MapPin,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -87,6 +88,7 @@ export function EnhancedStudentDashboardView({
     { id: "planner", label: "AI Study Planner", icon: CalendarDays },
     { id: "drills", label: "Micro Drills", icon: Brain },
     { id: "copilot", label: "AI Copilot", icon: Bot },
+    { id: "campus-map", label: "India Map", icon: MapPin },
     { id: "privacy", label: "Grievance Centre", icon: ShieldAlert },
     { id: "community", label: "Campus Life", icon: Sparkles },
     { id: "settings", label: "Settings", icon: Settings },
@@ -117,7 +119,7 @@ export function EnhancedStudentDashboardView({
   const [drillScoreBoost, setDrillScoreBoost] = useState(false);
 
   // AI Copilot Chat State
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: "user" | "bot"; text: string; time: string; citations?: string[] }>>([
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: "user" | "bot"; text: string; time: string; citations?: string[]; action?: "india-map" }>>([
     {
       sender: "bot",
       text: "Hello Aarav! I am your Syllabus-Grounded AI Copilot. Ask me any conceptual question about your DBMS, OS, DSA, or Computer Networks courses, and I will answer with exact textbook citations.",
@@ -149,6 +151,27 @@ export function EnhancedStudentDashboardView({
     const userMsg = { sender: "user" as const, text: promptText, time: "Just now" };
     setChatMessages((prev) => [...prev, userMsg]);
     setChatInput("");
+
+    const isMapQuestion =
+      /\b(campus map|google maps|map of india|location|directions)\b/i.test(
+        promptText
+      ) ||
+      /\b(find|search|locate|show)\b.{0,25}\b(colleges?|universities|campuses)\b/i.test(
+        promptText
+      );
+    if (isMapQuestion) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "India ke kisi bhi city, college ya university ko map par dekh sakte ho. Search Google Maps par khulega; CAMPUS-NEXUS kisi ek college se affiliated nahi hai.",
+          time: "Just now",
+          action: "india-map",
+        },
+      ]);
+      return;
+    }
+
     setChatLoading(true);
 
     try {
@@ -1049,6 +1072,15 @@ export function EnhancedStudentDashboardView({
                           ))}
                         </div>
                       )}
+                      {msg.sender === "bot" && msg.action === "india-map" && (
+                        <Link
+                          href="/student/campus-map"
+                          className="inline-flex items-center gap-1 rounded-full border border-[#CDEBDD] bg-white px-3 py-1.5 text-[10px] font-semibold text-[#047857] transition hover:border-[#34D399] hover:bg-[#F0FAF5]"
+                        >
+                          <MapPin className="h-3 w-3" aria-hidden="true" />
+                          Open India map
+                        </Link>
+                      )}
                       <span className="block text-[9px] text-[#7A968A] text-right">{msg.time}</span>
                     </div>
                   </div>
@@ -1072,6 +1104,7 @@ export function EnhancedStudentDashboardView({
                   "Explain B+ Tree range queries vs B-Tree",
                   "Why is Deadlock detection O(V+E)?",
                   "Explain Strict 2PL vs 2PL in DBMS",
+                  "Find colleges in India",
                 ].map((q, idx) => (
                   <button
                     key={idx}
