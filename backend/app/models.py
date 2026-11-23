@@ -368,3 +368,96 @@ class GradeChangeLedger(Base):
     before_json = Column(Text, nullable=False)
     after_json = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), default=utcnow)
+
+
+class ZKGroupMember(Base):
+    """
+    Semaphore ZK Group Member Registry (v2):
+    Stores Semaphore identity commitments for campus student bodies.
+    Guarantees privacy: Strictly NO user_id stored to ensure zero linkability.
+    """
+    __tablename__ = "zk_group_members"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    group_id = Column(String(64), nullable=False, index=True)
+    identity_commitment = Column(String(128), unique=True, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+
+
+class ExamScheduleSlot(Base):
+    """
+    CP-SAT Optimized Exam Timetable (v2):
+    Tracks hall allocations, slots, invigilators, and schedule rollback versions.
+    """
+    __tablename__ = "exam_schedule_slots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(String(64), ForeignKey("colleges.id"), nullable=False, index=True)
+    course_id = Column(String(64), ForeignKey("courses.id"), nullable=False)
+    room_id = Column(String(64), nullable=False)
+    slot_time = Column(DateTime(timezone=True), nullable=False)
+    invigilator_id = Column(String(64), ForeignKey("users.id"), nullable=True)
+    cohort = Column(String(64), nullable=False, default="CSE-2026")
+    rollback_version = Column(Integer, nullable=False, default=1)
+    status = Column(String(32), nullable=False, default="scheduled")
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+
+
+class ReviewCard(Base):
+    """
+    FSRS Spaced Repetition Flashcard / Micro-Drill State (v2):
+    Tracks topic stability S, difficulty D, and retrieval schedule.
+    """
+    __tablename__ = "review_cards"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(String(64), ForeignKey("colleges.id"), nullable=False, index=True)
+    student_id = Column(String(64), ForeignKey("users.id"), nullable=False, index=True)
+    concept_id = Column(String(64), ForeignKey("concept_nodes.id"), nullable=False)
+    stability = Column(Float, nullable=False, default=1.0)
+    difficulty = Column(Float, nullable=False, default=5.0)
+    reps = Column(Integer, nullable=False, default=0)
+    last_review = Column(DateTime(timezone=True), default=utcnow)
+    next_due = Column(DateTime(timezone=True), default=utcnow)
+    state = Column(String(32), nullable=False, default="learning")
+
+
+class AttendanceScan(Base):
+    """
+    Anti-Proxy Dynamic HMAC Attendance Scan (v2):
+    Tracks 15-second rotating QR scans, device fingerprints, geofence, and anomaly scores.
+    """
+    __tablename__ = "attendance_scans"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(String(64), ForeignKey("colleges.id"), nullable=False, index=True)
+    student_id = Column(String(64), ForeignKey("users.id"), nullable=False, index=True)
+    course_id = Column(String(64), ForeignKey("courses.id"), nullable=False)
+    device_hash = Column(String(64), nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    geofence_status = Column(String(32), nullable=False, default="within_range")
+    anomaly_score = Column(Float, nullable=False, default=0.05)
+    verified = Column(Boolean, nullable=False, default=True)
+    timestamp = Column(DateTime(timezone=True), default=utcnow)
+
+
+class LabEquipment(Base):
+    """
+    Weibull Failure Reliability Registry (v2):
+    Tracks physical laboratory equipment and hostel utilities with fitted Weibull parameters (k, lambda).
+    """
+    __tablename__ = "lab_equipment"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(String(64), ForeignKey("colleges.id"), nullable=False, index=True)
+    name = Column(String(128), nullable=False)
+    asset_tag = Column(String(64), unique=True, nullable=False)
+    category = Column(String(64), nullable=False, default="Lab Instrument")
+    location = Column(String(128), nullable=False)
+    installed_at = Column(DateTime(timezone=True), default=utcnow)
+    age_days = Column(Integer, nullable=False, default=180)
+    k_shape = Column(Float, nullable=False, default=2.2)
+    lambda_scale = Column(Float, nullable=False, default=720.0)
+    last_service = Column(DateTime(timezone=True), default=utcnow)
+    status = Column(String(32), nullable=False, default="operational")

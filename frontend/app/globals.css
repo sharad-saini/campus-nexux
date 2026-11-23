@@ -167,6 +167,119 @@ a {
   text-decoration: none;
 }
 
+/* Persistent dark mode with a soft galaxy atmosphere. */
+.dark {
+  color-scheme: dark;
+  --bg-base: #080B18;
+  --bg-panel: #111A2D;
+  --border: #293650;
+  --mint: #45D6B0;
+  --mint-deep: #5ED9B1;
+  --text-primary: #F0F2FA;
+  --text-muted: #B6C0D4;
+  --placeholder: #91A0B8;
+}
+
+.dark html,
+.dark body {
+  background-color: #080B18 !important;
+  background-image:
+    radial-gradient(ellipse at 12% 12%, rgba(57, 75, 168, 0.26), transparent 37%),
+    radial-gradient(ellipse at 82% 28%, rgba(91, 43, 148, 0.2), transparent 34%),
+    radial-gradient(ellipse at 56% 94%, rgba(12, 103, 105, 0.2), transparent 43%),
+    radial-gradient(1px 1px at 8% 16%, rgba(226,235,255,.8) 99%, transparent 100%),
+    radial-gradient(1px 1px at 22% 72%, rgba(184,204,255,.72) 99%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 44% 31%, rgba(247,242,255,.78) 99%, transparent 100%),
+    radial-gradient(1px 1px at 68% 63%, rgba(184,204,255,.68) 99%, transparent 100%),
+    radial-gradient(1px 1px at 91% 14%, rgba(226,235,255,.72) 99%, transparent 100%),
+    radial-gradient(1px 1px at 86% 82%, rgba(184,204,255,.6) 99%, transparent 100%) !important;
+  background-attachment: fixed !important;
+  color: #F0F2FA !important;
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: #F0F2FA !important;
+}
+
+.dark .bg-white {
+  background-color: rgba(15, 21, 39, 0.93) !important;
+}
+
+.dark [class~="bg-white/95"] {
+  background-color: rgba(15, 21, 39, 0.97) !important;
+}
+
+.dark [class~="bg-amber-50/80"] {
+  background-color: rgba(45, 35, 20, 0.72) !important;
+}
+
+.dark [class~="bg-[#FCFDFB]"] {
+  background-color: rgba(8, 12, 26, 0.72) !important;
+}
+
+.dark [class~="bg-[#F4FAF7]"],
+.dark [class~="bg-[#F0FAF5]"],
+.dark .bg-emerald-50 {
+  background-color: rgba(19, 34, 47, 0.92) !important;
+}
+
+.dark [class~="bg-amber-50"],
+.dark [class~="bg-[#FEF9C3]"] {
+  background-color: rgba(68, 48, 10, 0.65) !important;
+}
+
+.dark [class~="text-[#0B2E22]"],
+.dark [class~="text-[#123A32]"],
+.dark [class~="text-slate-900"] {
+  color: #F0F2FA !important;
+}
+
+.dark [class~="text-[#4B6B5E]"],
+.dark [class~="text-slate-600"],
+.dark [class~="text-slate-500"] {
+  color: #B6C0D4 !important;
+}
+
+.dark [class~="text-[#047857]"],
+.dark [class~="text-emerald-700"],
+.dark [class~="text-emerald-800"] {
+  color: #63DDB8 !important;
+}
+
+.dark [class~="border-[#CDEBDD]"],
+.dark [class~="border-emerald-100"],
+.dark [class~="border-emerald-200"] {
+  border-color: #293650 !important;
+}
+
+.dark [class~="border-amber-200"],
+.dark [class~="border-amber-300"] {
+  border-color: #64512C !important;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #0D1426 !important;
+  border-color: #35425D !important;
+  color: #F0F2FA !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #91A0B8 !important;
+}
+
+.dark header {
+  background-color: rgba(9, 13, 28, 0.94) !important;
+  border-color: #293650 !important;
+}
+
 ::selection {
   background: var(--mint);
   color: var(--text-primary);

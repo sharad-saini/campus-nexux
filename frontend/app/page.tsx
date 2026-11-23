@@ -31,7 +31,7 @@ export default function HomePage() {
 
   return (
     <>
-      <Navbar user={user} onLogin={openLogin} onBackToConsole={openConsole} />
+      <Navbar />
       <Slide11LandingPage
         onLogin={openLogin}
         onDemo={openLogin}
