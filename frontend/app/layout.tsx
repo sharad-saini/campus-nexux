@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: "CAMPUS-NEXUS · One Campus. One Intelligence. Better Decisions.",
   description:
     "Transforming academic performance, campus operations and student wellbeing through connected AI. Learn · Connect · Thrive.",
+  icons: {
+    icon: "/images/campus-nexus-3d-logo.svg",
+  },
 };
 
 export const viewport: Viewport = {

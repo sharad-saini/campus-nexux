@@ -25,7 +25,7 @@ from ..models import (
     User,
     ZKReport,
 )
-from ..security import get_current_user, require_roles
+from ..security import get_current_user, hash_password, require_roles
 
 router = APIRouter(prefix="/api/business", tags=["Business, ROI & Privacy Compliance"])
 
@@ -250,7 +250,7 @@ def erase_my_data(
     # Anonymize student profile
     user.full_name = f"Anonymized Student {user.id[-4:]}"
     user.email = f"erased_{user.id}@anonymized.invalid"
-    user.hashed_password = "ERASED_ACCOUNT"
+    user.hashed_password = hash_password(os.urandom(32).hex())
     user.opt_in_recruiter = False
 
     # Delete ephemeral gate passes

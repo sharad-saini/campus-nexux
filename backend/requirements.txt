@@ -8,6 +8,7 @@ pyjwt>=2.9.0
 bcrypt>=4.0.0
 cryptography>=43.0.0
 python-multipart>=0.0.12
+python-socketio>=5.11.0
 numpy>=2.1.0
 scipy>=1.14.0
 scikit-learn>=1.5.0

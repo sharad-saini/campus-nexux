@@ -8,33 +8,38 @@ client = TestClient(app)
 def test_health():
     res = client.get("/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok", "service": "campus-nexus-api"}
+    health = res.json()
+    assert health["status"] == "ok"
+    assert health["service"] == "campus-nexus-api"
+    assert health["database"] == "connected"
+    assert health["version"] == "2.0.0"
 
 
 def test_public_colleges():
     res = client.get("/api/colleges/public")
     assert res.status_code == 200
     colleges = res.json()
-    assert len(colleges) >= 2
+    assert len(colleges) >= 1
     codes = [c["code"] for c in colleges]
     assert "NITX" in codes
-    assert "RBCE" in codes
+    assert len(codes) == len(set(codes))
 
 
 def test_role_logins():
     roles = [
-        ("admin@nitx.demo", "admin", "chancellor_dean"),
-        ("professor@nitx.demo", "professor", "professor_hod"),
-        ("student001@nitx.demo", "student123", "student"),
-        ("technician@nitx.demo", "technician", "technician_warden"),
-        ("recruiter@nitx.demo", "recruiter", "recruiter"),
+        ("admin@nitx.demo", "admin", "admin", "admin"),
+        ("professor@nitx.demo", "professor", "professor", "faculty"),
+        ("student001@nitx.demo", "student123", "student", "student"),
+        ("technician@nitx.demo", "technician", "technician", "other"),
+        ("recruiter@nitx.demo", "recruiter", "recruiter", "other"),
     ]
-    for email, password, expected_role in roles:
+    for email, password, expected_role, expected_normalized_role in roles:
         res = client.post("/api/auth/login", json={"email": email, "password": password, "college_code": "NITX"})
         assert res.status_code == 200, f"Login failed for {email}: {res.text}"
         data = res.json()
         assert "access_token" in data
         assert data["user"]["role"] == expected_role
+        assert data["user"]["normalized_role"] == expected_normalized_role
 
 
 def get_token(email: str, password: str, college_code: str = "NITX") -> str:

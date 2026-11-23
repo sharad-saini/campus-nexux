@@ -86,7 +86,7 @@ def seed_auth_users():
                 updated_count += 1
 
         db.commit()
-        print(f"✓ Authentication Seed Complete! Created: {seeded_count}, Updated: {updated_count}")
+        print(f"Authentication Seed Complete! Created: {seeded_count}, Updated: {updated_count}")
         print("\nTest Credentials Ready:")
         print("  • Admin:   admin@nitx.demo   / Admin@123   (Role: admin)")
         print("  • Faculty: faculty@nitx.demo / Faculty@123 (Role: faculty)")

@@ -7,6 +7,8 @@
     "dev": "./run.sh",
     "start": "./run.sh",
     "start:all": "./run.sh",
+    "build": "npm --prefix frontend run build",
+    "vercel-build": "npm --prefix frontend run build",
     "frontend": "npm --prefix frontend run dev",
     "backend": "cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
   }

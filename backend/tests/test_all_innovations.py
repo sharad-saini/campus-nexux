@@ -540,6 +540,11 @@ def test_privacy_gdpr_export_and_erase_my_data():
         erase_res = client.post("/api/business/privacy/erase-my-data", headers={"Authorization": f"Bearer {token}"})
         assert erase_res.status_code == 200
         assert erase_res.json()["status"] == "erased"
+        reauth_res = client.post(
+            "/api/auth/login",
+            json={"email": "student003@nitx.demo", "password": "student123", "college_code": "NITX"},
+        )
+        assert reauth_res.status_code == 401
 
 
 def test_business_roi_calculator_and_accreditation_pack():
